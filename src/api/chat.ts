@@ -1,13 +1,15 @@
+import type { Message } from "../types";
+
 const BASE = "http://localhost:3000";
 
-const getChatResponse = async(prompt: string) => {
+const getChatResponse = async(messages: Message[]) => {
 
     const response = await fetch(`${BASE}/chat`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
         },
-        body: JSON.stringify({ prompt })
+        body: JSON.stringify({ messages: messages })
     });
 
     const content = await response.json();

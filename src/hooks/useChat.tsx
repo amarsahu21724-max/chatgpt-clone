@@ -18,14 +18,16 @@ export default function useChat() {
         content: input,
       };
 
-      setMessages((prev) => [...prev, userMessage]);
+      const updatedMessages = [...messages, userMessage];
+
+      setMessages(updatedMessages);
 
       setInput("");
 
       setIsLoading(true);
 
       // call the Gemini API.
-      const groqResponse: string = await getChatResponse(userMessage.content);
+      const groqResponse: string = await getChatResponse(updatedMessages);
 
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
