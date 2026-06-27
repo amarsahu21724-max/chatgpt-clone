@@ -1,13 +1,20 @@
+import { useEffect } from "react";
 import type { Message } from "../types";
 
 
 interface MessagesContainerProps {
     messages: Message[];
     isLoading: boolean;
+    error: string | null;
+    retry: () => void;
 }
 
-export default function MessagesContainer( { messages, isLoading }: MessagesContainerProps ) {
+export default function MessagesContainer( { messages, isLoading, error, retry }: MessagesContainerProps ) {
 
+
+    useEffect(() => {
+        console.log("error", error);
+    }, [messages, error, isLoading]);
 
     return (
         <div className="flex-1 overflow-y-auto p-4">
@@ -28,7 +35,21 @@ export default function MessagesContainer( { messages, isLoading }: MessagesCont
                 </div>
             }
 
-            {isLoading && <div className="flex justify-start p-4 text-black"> Loading... </div>}
+            {isLoading && <div className="flex justify-start p-4 text-black"> Loading... </div> }
+            
+            {error && (
+                <div className="flex items-center justify-between p-4 bg-white ">
+                    <div className="text-red-700 px-4 py-2">
+                        {error}
+                    </div>
+                    <button 
+                        onClick={retry} 
+                        className="ml-2 bg-black text-white px-4 py-2 rounded-full"
+                    >
+                        Retry
+                    </button>
+                </div>
+            )}
         </div>
     )
 }

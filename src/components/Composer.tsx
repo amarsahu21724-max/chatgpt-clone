@@ -2,9 +2,11 @@ interface ComposerProps {
     value: string;
     onChange: (content: string) => void;
     onSend: (content: string) => void;
+    model: string;
+    onModelChange: (model: string) => void;
 }
 
-export default function Composer({ value, onChange, onSend }: ComposerProps) {
+export default function Composer({ value, onChange, onSend, model, onModelChange }: ComposerProps) {
 
 
     return (
@@ -24,6 +26,18 @@ export default function Composer({ value, onChange, onSend }: ComposerProps) {
                 }}
             >
             </input>
+
+            <select
+                value={model}
+                onChange={(e: any) => onModelChange(e.target.value)}
+                className="outline-none bg-transparent text-black"
+            >
+                <option> llama-3.1-8b-instant </option>
+                <option> llama-3.3-70b-versatile </option>
+                <option> openai/gpt-oss-120b </option>
+
+            </select>
+
 
             <button 
                 disabled={value.trim() === ""}
