@@ -1,98 +1,98 @@
 import { useState } from "react";
 import type { Message } from "../types";
-import { getChatResponse, getChatStreamResponse } from "../api/chat";
+import { getChatStreamResponse } from "../api/chat";
 
 export default function useChat() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [model, setModel] = useState("llama-3.3-70b-versatile");
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [input, setInput] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [model, setModel] = useState("llama-3.3-70b-versatile");
 
-  const sendMessage = async () => {
-    try {
-      // create the userMessage
-      const userMessage: Message = {
-        id: crypto.randomUUID(),
-        role: "user",
-        content: input,
-      };
+    const streamAssistantResponse = async (history: Message[]) => {
+        setIsLoading(true);
+        setError(null);
 
-      const updatedMessages = [...messages, userMessage];
+        try {
+            await getChatStreamResponse(history, model, (data: string) => {
+                setMessages((current) => {
+                    const last = current[current.length - 1];
 
-      setMessages(updatedMessages);
+                    // First chunk
+                    if (!last || last.role !== "assistant") {
+                        return [
+                            ...current,
+                            {
+                                id: crypto.randomUUID(),
+                                role: "assistant",
+                                content: data,
+                            },
+                        ];
+                    }
 
-      setInput("");
+                    // Next chunks
+                    return [
+                        ...current.slice(0, -1),
+                        {
+                            ...last,
+                            content: last.content + data,
+                        },
+                    ];
+                });
+            });
+        } catch (err) {
+            console.error(err);
+            setError("Failed to get response.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-      setIsLoading(true);
+    const sendMessage = async (text?: string) => {
+        const content = (text ?? input).trim();
 
-      await getChatStreamResponse(updatedMessages, model, (data: string) => {
-        setMessages((messages) => {
-          const lastMessage = messages[messages.length - 1];
+        if (!content) return;
 
-          if (lastMessage.role !== "assistant") {
-            const assistantMessage: Message = {
-              id: crypto.randomUUID(),
-              role: "assistant",
-              content: data,
-            }
+        const userMessage: Message = {
+            id: crypto.randomUUID(),
+            role: "user",
+            content,
+        };
 
-            return [...messages, assistantMessage];
+        const history = [...messages, userMessage];
 
-          } else {
-            return [...messages.slice(0, messages.length-1), { ...lastMessage, content: lastMessage.content + data}]
-          }  
-        });
-    })
-      
+        setMessages(history);
+        setInput("");
 
-    } catch (error) {
-      console.error("Error sending message:", error);
-      setError(`Failed to send message to groq.`);
+        await streamAssistantResponse(history);
+    };
 
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const retry = async () => {
+        let history = [...messages];
 
-  const retry = async () => {
-    try {
+        // Remove last assistant response
+        if (
+            history.length > 0 &&
+            history[history.length - 1].role === "assistant"
+        ) {
+            history.pop();
+        }
 
-      setIsLoading(true);
+        // Update UI immediately
+        setMessages(history);
 
-      // call the Gemini API.
-      const groqResponse: string = await getChatResponse(messages, model);
+        await streamAssistantResponse(history);
+    };
 
-      // Craete the assistant message.
-      const assistantMessage: Message = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: groqResponse,
-      };
-
-      setMessages((messages) => [...messages, assistantMessage]);
-
-      setError(null);
-
-    } catch (error) {
-      console.error("Error retrying message:", error);
-      setError(`Failed to retry message to groq: ${String(error)}`);
-
-    } finally {
-      setIsLoading(false);
-    }
-     
-  }
-
-  return {
-    messages,
-    input,
-    setInput,
-    sendMessage,
-    isLoading,
-    error,
-    retry,
-    model,
-    setModel,
-  };
+    return {
+        messages,
+        input,
+        setInput,
+        sendMessage,
+        isLoading,
+        error,
+        retry,
+        model,
+        setModel,
+    };
 }
